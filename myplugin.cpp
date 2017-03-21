@@ -18,6 +18,7 @@ size_t MAX_ITERATIONS = 100;
 int RRTNode::CurrentID = 0;
 dReal GOAL_BIAS = 0.2;
 dReal delta_Q = 0.1;
+int flag = 0;
 
 typedef std::vector<OpenRAVE::dReal> Config;
 typedef boost::shared_ptr<RRTNode> Node;
@@ -73,27 +74,32 @@ public:
         _randomConfig = _startConfig;
         //Main Algorithm Starts Here
         count = 0;
-        while(count++ < 10){
+        while(count++ < 100000){
             //------------------------get random node
             _randomConfig = randomnodeGenerator();
-            printConfig("Random",_randomConfig);  
+            // printConfig("Random",_randomConfig);  
             
             
             //------------------------check for nearest node in tree
             _nearestNode = NNNode();
-            printConfig("Nearest", _randomConfig);
+            // printConfig("Nearest", _nearestNode->getConfig());
 
             cout << "{ count :: " << count << " || unique id :: " << _nearestNode->getUniqueId() << " }" << endl;
             
             
             //------------------------Get the step size
-            _stepSize = step();
+             _stepSize = step();
             //printConfig("Step",_stepSize);
             
             //------------------------get the next node
             EXTEND(count);
-            
+            // extendExtend(count);
             //------------------------
+            if(flag == 1){
+                break;
+            }else{
+                cout << "running" << endl; 
+            }
             cout << endl;
 
         }
@@ -139,9 +145,11 @@ public:
         for(size_t i = 0; i<7 ;i++){
             if(config[i] < _upperLimit[i] && config[i] > _lowerLimit[i]){
                 sum++;
+                cout << " i : " << i;
             }
         }
-
+        cout << endl;
+        cout << "sum :" << sum << endl;
         if(sum==7)
             return true;
         else
@@ -166,7 +174,7 @@ public:
                     bias= RaveRandomFloat();//change random configration next time <common sense , not so common :'D  :| >
 
                    }    
-                }while(CheckCollision(temp_config));   
+                }while(!CheckCollision(temp_config));   
         }
         return temp_config; 
     
@@ -177,6 +185,7 @@ public:
     
         dReal temp_val = 0;
         dReal min_val = 100;
+        dReal diff;
         size_t range = _mainTree.getTreeSize();
         vector< boost::shared_ptr<RRTNode> > temp_tree = _mainTree.getfullPath();
     
@@ -192,21 +201,38 @@ public:
             }
 
             temp_val = sqrt(temp_val);
-            
-            if(temp_val < min_val){
-        
+            // cout << "----------------------------------" << endl;
+            // cout << "Temp :" << temp_val << "--";
+            // printConfig("Temp", temp_config);
+            // cout << "Min  :" << min_val << "--";
+            diff = min_val - temp_val;
+            // printThis("min_val - temp_val : ",  diff);
+
+            if(diff > 0){
+                // cout << "---------" << endl;
                 min_val = temp_val;
                 _nearestNode = temp_tree[i];
                 _nearestNode->setUniqueId(i);
-        
+                // printThis("Min :", min_val);
+                // printConfig("Min", _nearestNode->getConfig());
             }
         }
-        printConfig("Nearest Config ::",_nearestNode->getConfig());
+        // cout << "----------------------------------------------" << endl;
+        // printThis("Final", min_val);
+        // printConfig("Nearest ::",_nearestNode->getConfig());
         // cout << "min_index................." << _nearestNode->getUniqueId() << endl;
 
         return _nearestNode;
     }
    
+   //function for printing
+    void printThis(string s,dReal g){
+        cout << s << " " << g << endl;
+    }
+
+    void printThose(string s,dReal g, dReal h){
+        cout << s << " " << g  << " " << h << endl;
+    }
    //step size calculation
    Config step(){
         
@@ -232,18 +258,28 @@ public:
         //extend a step on nearest neibhour until obstacle is found
         //find new node config
         // int flag = 0;
+        string s;
+        //flag = 0;
         Config temp_new_config = _nearestNode->getConfig();
 
         do{
         // do{
             // printConfig("Before Adding Nearest Node", temp_new_config);
             temp_new_config = _nearestNode->getConfig();
-            cout << "count " << count << endl;
+            // cout << "count " << count << endl;
             // printConfig("Before Adding", temp_new_config);
             // printConfig("Extend Config :", temp_new_config);
             
             if(_nearestNode->getConfig() == _goalConfig){
                 cout << "--------------------------------------------Found Goal" << endl;
+                flag = 1;
+            }
+
+            if(flag == 0){
+                cout << " searching ... " << count << endl; 
+            }else{
+                break;
+                cout << " GOAL Found " ;
             }
 
             for(size_t i=0; i<7 ; i++){
@@ -254,19 +290,44 @@ public:
             
              _mainTree.nodeAdd(Node(new RRTNode(temp_new_config, _nearestNode)));
 
+            // if(temp_new_config == _goalConfig){
+            //     return false;
+            // }else{
+            //     return true;
+            // }
+
             if(!CheckCollision(temp_new_config)){
                  //_mainTree.nodeAdd(_temp);
+                // cout << " added ... " << endl;
                 _nearestNode = _mainTree.getLast();       
 
             }
 
-        }while(CheckCollision(temp_new_config));// && checkConfigLimits(temp_new_config));
 
+
+        }while(!CheckCollision(temp_new_config));// && checkConfigLimits(temp_new_config));
+        // return s;
+        // return true;
     }
+
+    // bool extendExtend(int count){
+    //     string pp;
+    //     int j = count;
+    //     pp = Extend(count);
+
+    //     if(pp == "Searching .."){
+    //         return true;
+    //     }else{
+    //         return false;
+    //     }
+    // }
 
     bool CheckCollision(Config config){
         EnvironmentMutex& lock = _penv->GetMutex();
         lock.lock();
+        // if(config[5] < -2.00001){
+        //     config[5] = -2.00000;
+        // }
         _robot->SetActiveDOFValues(config);
         bool check = _penv->CheckCollision(_robot);
         _robot->SetActiveDOFValues(_startConfig);
