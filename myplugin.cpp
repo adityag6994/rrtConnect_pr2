@@ -1,5 +1,6 @@
 #include <openrave/openrave.h>
 #include <openrave/plugin.h>
+#include <openrave/planningutils.h>
 
 #include <boost/bind.hpp>
 #include <boost/algorithm/string/classification.hpp> // Include boost::for is_any_of
@@ -121,6 +122,7 @@ public:
 
         }
         cout << "SIZE =================> " << _mainTree.getTreeSize() << endl;
+        // ExecuteTrajectory();
         cout << "*PLUGIN FINISHED" << endl;   
 
         return true;
@@ -377,6 +379,25 @@ public:
         //cout << "----" << endl;
         return check;
     }
+
+    void ExecuteTrajectory(){
+    
+        EnvironmentMutex& lock = _penv->GetMutex();
+        lock.lock();
+        TrajectoryBasePtr traj = RaveCreateTrajectory(_penv);
+        traj->Init(_robot->GetActiveConfigurationSpecification());
+
+        vector< boost::shared_ptr<RRTNode> > temp_tree = _mainTree.getfullPath();
+
+        for(int i=0; i< _mainTree.getTreeSize(); i++){
+            traj->Insert(0, temp_tree[i]->getConfig());
+        } 
+            traj->Insert(0, _startConfig);
+            planningutils::RetimeActiveDOFTrajectory(traj, _robot);
+            _robot->GetController()->SetPath(traj);
+            lock.unlock();
+    }
+
 
     
 private:
