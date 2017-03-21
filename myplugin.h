@@ -90,8 +90,27 @@
                  	}
                 }
                 throw 0;
+
           }
           
+          void printFullTree(){
+            for(size_t i=0 ; i<_tree.size() ; i++){
+              printConfig("i ::: ",i,_tree[i]->getConfig());
+            }
+          }
+
+
+          void printConfig(string s ,size_t a,Config config){
+              cout << s   << a << "    ";
+              
+              for(size_t i = 0; i < 7 ; i++){
+                cout << config[i] << ' ';
+              }
+              
+              cout << endl;
+          }
+
+
           boost::shared_ptr<RRTNode> getLast() {
             return _tree.back();
           }

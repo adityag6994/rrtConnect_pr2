@@ -17,7 +17,7 @@ using namespace std;
 size_t MAX_ITERATIONS = 100;
 int RRTNode::CurrentID = 0;
 dReal GOAL_BIAS = 0.2;
-dReal delta_Q = 0.1;
+dReal delta_Q = 0.05;
 int flag = 0;
 
 typedef std::vector<OpenRAVE::dReal> Config;
@@ -52,12 +52,12 @@ public:
         */
         
         //we have goal and start config with us now, add them to NodeTree
-        _weight.push_back(6);
-        _weight.push_back(5);
-        _weight.push_back(4);
-        _weight.push_back(3);
+        _weight.push_back(3.17104);
+        _weight.push_back(2.75674);
+        _weight.push_back(2.2325);
+        _weight.push_back(1.78948);
         _weight.push_back(0);
-        _weight.push_back(1);
+        _weight.push_back(0.809013);
         _weight.push_back(0);
 
 
@@ -75,6 +75,9 @@ public:
         //Main Algorithm Starts Here
         count = 0;
         while(count++ < 100000){
+            
+            cout << "{ count :: " << count <<  " }" << endl;
+            
             //------------------------get random node
             _randomConfig = randomnodeGenerator();
             // printConfig("Random",_randomConfig);  
@@ -84,26 +87,40 @@ public:
             _nearestNode = NNNode();
             // printConfig("Nearest", _nearestNode->getConfig());
 
-            cout << "{ count :: " << count << " || unique id :: " << _nearestNode->getUniqueId() << " }" << endl;
             
             
             //------------------------Get the step size
              _stepSize = step();
             //printConfig("Step",_stepSize);
-            
+            // _diffGoal = differenceCost();
+            // cout << "_diffGoal ---> "<< _diffGoal << endl;
+            // cout << ""
+            if(flag){
+                
+                cout << "-------------------------------------------------------" <<endl;
+                // cout << "_diffGoal ---> "<< _diffGoal << endl;
+                _mainTree.printFullTree();
+                cout << "Goal Found" << endl;
+                break;
+                
+            }else{
             //------------------------get the next node
-            EXTEND(count);
+                EXTEND(count);
+                cout << "Searching.."<< endl;
+
+            }
             // extendExtend(count);
             //------------------------
-            if(flag == 1){
-                break;
-            }else{
-                cout << "running" << endl; 
-            }
+            
+            // if(flag == 1){
+            //     break;
+            // }else{
+            //     cout << "Running..." << endl; 
+            // }
             cout << endl;
 
         }
-
+        cout << "SIZE =================> " << _mainTree.getTreeSize() << endl;
         cout << "*PLUGIN FINISHED" << endl;   
 
         return true;
@@ -225,6 +242,20 @@ public:
         return _nearestNode;
     }
    
+   dReal differenceCost(Config config){
+        dReal temp_val;
+        
+        for(size_t j=0; j<7; j++){
+                if(j == 4 || j == 6)
+                  temp_val += pow((config[j]/10000 - _goalConfig[j]/10000)*_weight[j], 2);
+                else
+                  temp_val += pow((-_goalConfig[j] + config[j])*_weight[j], 2);
+            }
+
+            temp_val = sqrt(temp_val);
+            return temp_val;
+   }
+
    //function for printing
     void printThis(string s,dReal g){
         cout << s << " " << g << endl;
@@ -253,6 +284,8 @@ public:
         return temp_step;
    }
 
+
+
    //extend
     void EXTEND(int count){
         //extend a step on nearest neibhour until obstacle is found
@@ -270,17 +303,17 @@ public:
             // printConfig("Before Adding", temp_new_config);
             // printConfig("Extend Config :", temp_new_config);
             
-            if(_nearestNode->getConfig() == _goalConfig){
-                cout << "--------------------------------------------Found Goal" << endl;
-                flag = 1;
-            }
+            // if(_nearestNode->getConfig() == _goalConfig){
+            //     cout << "--------------------------------------------Found Goal" << endl;
+            //     flag = 1;
+            // }
 
-            if(flag == 0){
-                cout << " searching ... " << count << endl; 
-            }else{
-                break;
-                cout << " GOAL Found " ;
-            }
+            // if(flag == 0){
+            //     cout << " searching ... " << count << endl; 
+            // }else{
+            //     break;
+            //     cout << " GOAL Found " ;
+            // }
 
             for(size_t i=0; i<7 ; i++){
                 temp_new_config[i] += _stepSize[i];
@@ -295,6 +328,13 @@ public:
             // }else{
             //     return true;
             // }
+            _diffGoal = differenceCost(temp_new_config);
+            if(_diffGoal < delta_Q){
+                // printConfig("final config",)
+                cout << _diffGoal << endl;
+                flag = 1;
+                break;
+            }
 
             if(!CheckCollision(temp_new_config)){
                  //_mainTree.nodeAdd(_temp);
@@ -309,6 +349,8 @@ public:
         // return s;
         // return true;
     }
+
+
 
     // bool extendExtend(int count){
     //     string pp;
@@ -360,6 +402,8 @@ private:
 
     NodeTree _mainTree;
     
+    dReal _diffGoal;
+
     size_t count;
 };
 
