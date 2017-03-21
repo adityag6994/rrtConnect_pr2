@@ -1,0 +1,1 @@
+/usr/bin/c++  -fPIC  -std=c++11  -L/usr/lib/x86_64-linux-gnu -L/usr/lib   -shared -Wl,-soname,libmyplugin.so -o libmyplugin.so CMakeFiles/myplugin.dir/myplugin.cpp.o  -L/usr/local/lib -lopenrave0.9 -Wl,-rpath,/usr/local/lib: 
