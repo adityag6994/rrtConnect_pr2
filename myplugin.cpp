@@ -28,11 +28,6 @@ typedef boost::shared_ptr<NodeTree> Tree;
 class RRTModule : public ModuleBase
 {
 
-//startconfig = [-0.15,0.075,-1.008,0,0,-0.11,0]
-//goalconfig = [0.449,-0.201,-0.151,0,0,-0.11,0]
-
-
-
 public:
     RRTModule(EnvironmentBasePtr penv, std::istream& ss) : ModuleBase(penv) {
         _penv = penv;
@@ -72,9 +67,7 @@ public:
         Lower Limits:  Config:  -0.564602 -0.3536 -2.12131 -2.00001 -10000 -2.00001 -10000 
         Upper Limits:  Config:   2.13539   1.2963 -0.15    -0.1      10000 -0.1      10000 
         */
-        
-        //we have goal and start config with us now, add them to NodeTree
-        //3.17104, 2.75674, 2.2325, 1.78948, 0, 0.809013, 0
+ 
         _weight.push_back(3.17104);
         _weight.push_back(2.75674);
         _weight.push_back(2.2325);
@@ -116,23 +109,10 @@ public:
             
             //------------------------Get the step size
              _stepSize = step();
-            //printConfig("Step",_stepSize);
-            // _diffGoal = differenceCost();
-            // cout << "_diffGoal ---> "<< _diffGoal << endl;
-            // cout << ""
+
             if(flag){
                 
                 cout << "-------------------------------------------------------" <<endl;
-                // cout << "_diffGoal ---> "<< _diffGoal << endl;
-                
-                // for(size_t i=0; i < _path.size(); i++){
-                //     Config temp = _path[i]->getConfig();
-                //     for(size_t j=0; j < 7 ; j++){
-                //         cout << temp[j] << ' ';
-                //     }
-                //     cout << endl;
-                // }
-
 
                 cout << "Goal Found" << endl;
                 break;
@@ -143,14 +123,7 @@ public:
                 cout << "Searching.."<< endl;
 
             }
-            // extendExtend(count);
-            //------------------------
-            
-            // if(flag == 1){
-            //     break;
-            // }else{
-            //     cout << "Running..." << endl; 
-            // }
+
             cout << endl;
 
         }
@@ -161,6 +134,7 @@ public:
         cout << "*PLUGIN FINISHED" << endl;   
         printConfig("goal", _goalConfig);
         printConfig("start", _startConfig);
+        Draw();
         // printConfig("gaoal", _ggoalConfig);
         return true;
 
@@ -169,12 +143,6 @@ public:
     //getPath from last found goal as nearest neibhour
     void getPath(){
         //save in _path
-
-        // _goalNode = Node(new RRTNode());
-        // _goalNode->setConfig(_goalConfig);
-        // _goalNode->setParent(_nearestNode);
-
-        //_goalConfig->setParent(_nearestNode);
         _path.push_back(_nearestNode);
 
         while(_nearestNode->getParent() != nullptr){
@@ -276,10 +244,7 @@ public:
             }
 
             temp_val = sqrt(temp_val);
-            // cout << "----------------------------------" << endl;
-            // cout << "Temp :" << temp_val << "--";
-            // printConfig("Temp", temp_config);
-            // cout << "Min  :" << min_val << "--";
+
             diff = min_val - temp_val;
             // printThis("min_val - temp_val : ",  diff);
 
@@ -292,10 +257,6 @@ public:
                 // printConfig("Min", _nearestNode->getConfig());
             }
         }
-        // cout << "----------------------------------------------" << endl;
-        // printThis("Final", min_val);
-        // printConfig("Nearest ::",_nearestNode->getConfig());
-        // cout << "min_index................." << _nearestNode->getUniqueId() << endl;
 
         return _nearestNode;
     }
@@ -438,17 +399,10 @@ public:
     }
 
     bool CheckCollision(Config config){
-        // EnvironmentMutex& lock = _penv->GetMutex();
-        // lock.lock();
-        // // if(config[5] < -2.00001){
-        // //     config[5] = -2.00000;
-        // }
+
         _robot->SetActiveDOFValues(config);
         bool check = _penv->CheckCollision(_robot);
         _robot->SetActiveDOFValues(_startConfig);
-        // cout << check << endl;
-        // lock.unlock();
-        // cout << "----" << endl;
         return check;
     }
 
@@ -477,6 +431,47 @@ public:
             lock.unlock();
     }
 
+    // Get the endeffector position
+    // std::vector<float> PHE::MyNewRRT::GetEEPosition(configvector& config) {  
+    //     RobotBase::RobotStateSaver save(robot);
+    //     robot->SetActiveDOFValues(config);
+    //     robot->SetActiveManipulator("leftarm");
+    //     RobotBase::ManipulatorPtr mani;
+    //     mani = robot->GetActiveManipulator();
+    //     RaveVector<float> point = mani->GetEndEffectorTransform().trans;
+
+    //     std::vector<float> endEffector;
+    //     endEffector.push_back(point.x);
+    //     endEffector.push_back(point.y);
+    //     endEffector.push_back(point.z);
+
+    //     return endEffector;
+    // }
+
+    //Draw a point at the end effector position
+    void Draw(){
+
+        std::vector<float> endEffector;
+        float red[4] = {1,0,0,1};
+
+        for(size_t i=0 ; i<_path.size() ; i++ ){
+            _robot->SetActiveDOFValues(_path[i]->getConfig());
+            _robot->SetActiveManipulator("leftarm");
+            RobotBase::ManipulatorPtr hand;
+            hand = _robot->GetActiveManipulator();
+            RaveVector<dReal> point = hand->GetEndEffectorTransform().trans;
+            std::vector<float> endEffector;
+            endEffector.push_back(point.x);
+            endEffector.push_back(point.y);
+            endEffector.push_back(point.z);
+
+            // handler.push_back(_penv->plot3(point=array((endeffector[0],endeffector[1],endeffector[2])),
+            //                            pointsize=5.0,
+            //                            colors=array(1,0,0,1)))
+
+            handler.push_back(_penv->plot3(&endEffector[0],1,1,5,red,0,true));
+        }
+    }
 
     
 private:
@@ -506,6 +501,8 @@ private:
     
     dReal _diffGoal;
     dReal _diffConfig;
+
+    std::vector<GraphHandlePtr> handler;
     
     size_t count;
 
